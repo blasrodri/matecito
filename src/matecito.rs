@@ -1,34 +1,28 @@
 use crate::errors::MatecitoResult;
 
 use std::collections::{HashMap, VecDeque};
-use std::hash::{Hash, Hasher};
 
 use serde::Serialize;
-use twox_hash::{RandomXxHashBuilder64, XxHash64};
+use twox_hash::RandomXxHashBuilder64;
 
 pub struct Matecito {
     m: HashMap<u64, (Vec<u8>, usize), RandomXxHashBuilder64>,
     lru: VecDeque<u64>,
-    seed: u64,
     max_size: usize, // amount of bytes?
 }
 
 impl<'a> Matecito {
-    pub fn new(seed: u64, max_size: usize) -> Self {
+    pub fn new(max_size: usize) -> Self {
         let m: HashMap<_, _, RandomXxHashBuilder64> = Default::default();
         Self {
             m,
             lru: Default::default(),
-            seed,
             max_size,
         }
     }
 
-    pub fn put<K: Hash, V: Serialize>(&mut self, key: K, value: V) -> MatecitoResult<usize> {
+    pub fn put<V: Serialize>(&mut self, key: u64, value: V) -> MatecitoResult<usize> {
         let value = bincode::serialize(&value).unwrap();
-        let mut s = new_hasher(self.seed);
-        key.hash(&mut s);
-        let key = s.finish();
         let former_idx = self.m.get(&key).map(|x| x.1);
         match self.insert_in_lru(former_idx, key) {
             MatecitoResult::Ok(inserted_at) => {
@@ -39,10 +33,7 @@ impl<'a> Matecito {
         }
     }
 
-    pub fn get<T: Hash>(&self, key: &'a T) -> Option<&[u8]> {
-        let mut s = new_hasher(self.seed);
-        key.hash(&mut s);
-        let key = s.finish();
+    pub fn get(&self, key: u64) -> Option<&[u8]> {
         self.m.get(&key).map(|x| x.0.as_slice())
     }
 
@@ -62,20 +53,16 @@ impl<'a> Matecito {
     }
 }
 
-fn new_hasher(seed: u64) -> impl Hasher {
-    XxHash64::with_seed(seed)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
     fn insert_and_find_in_cache() {
-        let mut matecito = Matecito::new(111, 2);
-        assert_eq!(MatecitoResult::Ok(0 as usize), matecito.put(&123, b"123"));
-        assert_eq!(MatecitoResult::Ok(0 as usize), matecito.put(&456, b"456"));
+        let mut matecito = Matecito::new(2);
+        assert_eq!(MatecitoResult::Ok(0 as usize), matecito.put(123, b"123"));
+        assert_eq!(MatecitoResult::Ok(0 as usize), matecito.put(456, b"456"));
 
-        assert_eq!(Some(&b"456"[..]), matecito.get(&456));
-        assert_eq!(Some(&b"123"[..]), matecito.get(&123));
+        assert_eq!(Some(&b"456"[..]), matecito.get(456));
+        assert_eq!(Some(&b"123"[..]), matecito.get(123));
     }
 }
