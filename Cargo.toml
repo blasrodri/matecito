@@ -1,0 +1,12 @@
+[package]
+authors = ["Blas Rodriguez Irizar <rodrigblas@gmail.com>"]
+edition = "2018"
+name = "matecito"
+version = "0.1.0"
+[dependencies]
+bincode = "*"
+twox-hash = "*"
+
+[dependencies.serde]
+features = ["derive"]
+version = "1.0.115"
