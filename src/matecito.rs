@@ -64,5 +64,12 @@ mod tests {
 
         assert_eq!(Some(&b"456"[..]), matecito.get(456));
         assert_eq!(Some(&b"123"[..]), matecito.get(123));
+
+        assert_eq!(None, matecito.get(01010));
+
+        assert_eq!(MatecitoResult::Ok(0 as usize), matecito.put(789, b"789"));
+        assert_eq!(Some(&b"789"[..]), matecito.get(789));
+        // 123 is gone, since the cache is full
+        assert_eq!(None, matecito.get(123));
     }
 }
