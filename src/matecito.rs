@@ -6,15 +6,16 @@ use std::ptr::NonNull;
 
 use twox_hash::RandomXxHashBuilder64;
 
-type NonNullNode<T> = NonNull<Node<T>>;
-pub struct Matecito<T> {
+pub(crate) type NonNullNode<T> = NonNull<Node<T>>;
+
+pub(crate) struct Matecito<T> {
     m: HashMap<u64, (T, NonNullNode<u64>), RandomXxHashBuilder64>,
     dll: DoublyLinkedList<u64>,
     max_size: usize, // threshold on the amount of elements we can store
 }
 
 impl<'a, T: std::fmt::Debug> Matecito<T> {
-    pub fn new(max_size: usize) -> Self {
+    pub(crate) fn new(max_size: usize) -> Self {
         let m: HashMap<_, _, RandomXxHashBuilder64> = Default::default();
         Self {
             m,
@@ -23,7 +24,7 @@ impl<'a, T: std::fmt::Debug> Matecito<T> {
         }
     }
 
-    pub fn put(&mut self, key: u64, value: T) -> MatecitoResult<u64> {
+    pub(crate) fn put(&mut self, key: u64, value: T) -> MatecitoResult<u64> {
         if self.max_size == self.dll.num_elements() {
             self.evict_node();
         }
@@ -34,7 +35,7 @@ impl<'a, T: std::fmt::Debug> Matecito<T> {
         MatecitoResult::Ok(key)
     }
 
-    pub fn get(&mut self, key: u64) -> Option<&T> {
+    pub(crate) fn get(&mut self, key: u64) -> Option<&T> {
         if self.m.get(&key).is_none() {
             return None;
         }
