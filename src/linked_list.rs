@@ -130,6 +130,7 @@ impl<T> DoublyLinkedList<T> {
         Some(old_tail.elem)
     }
 
+    #[allow(dead_code)]
     pub(crate) fn pop_back(&mut self) -> Option<T> {
         // no nodes in the tail
         if self.head.is_none() {
@@ -153,6 +154,7 @@ impl<T> DoublyLinkedList<T> {
         Some(result.elem)
     }
 
+    #[allow(dead_code)]
     pub(crate) fn peek_front(&self) -> Option<&NonNull<Node<T>>> {
         if self.tail.is_none() {
             return None;
@@ -274,5 +276,77 @@ mod tests {
             num_elements -= 1;
             assert_eq!(num_elements, dll.num_elements());
         }
+    }
+
+    #[test]
+    fn edge_case_push_after_emptied_delete_and_empty_again() {
+        let mut dll = DoublyLinkedList::new();
+        let n1 = dll.push_back(1);
+        let n2 = dll.push_back(2);
+        let n3 = dll.push_back(3);
+
+        dll.delete(n1);
+        assert_eq!(2, dll.num_elements());
+
+        dll.delete(n2);
+        assert_eq!(1, dll.num_elements());
+
+        dll.delete(n3);
+        assert_eq!(0, dll.num_elements());
+        assert!(dll.is_empty());
+
+        let n1 = dll.push_back(1);
+        assert_eq!(1, dll.num_elements());
+        dll.delete(n1);
+        assert_eq!(0, dll.num_elements());
+        assert!(dll.is_empty());
+    }
+
+    #[test]
+    fn edge_case_push_after_emptied_pop_front_and_empty_again() {
+        let mut dll = DoublyLinkedList::new();
+        dll.push_back(1);
+        dll.push_back(2);
+        dll.push_back(3);
+
+        dll.pop_front();
+        assert_eq!(2, dll.num_elements());
+
+        dll.pop_front();
+        assert_eq!(1, dll.num_elements());
+
+        dll.pop_front();
+        assert_eq!(0, dll.num_elements());
+        assert!(dll.is_empty());
+
+        dll.push_back(1);
+        assert_eq!(1, dll.num_elements());
+        dll.pop_front();
+        assert_eq!(0, dll.num_elements());
+        assert!(dll.is_empty());
+    }
+
+    #[test]
+    fn edge_case_push_after_emptied_pop_back_and_empty_again() {
+        let mut dll = DoublyLinkedList::new();
+        dll.push_back(1);
+        dll.push_back(2);
+        dll.push_back(3);
+
+        dll.pop_back();
+        assert_eq!(2, dll.num_elements());
+
+        dll.pop_back();
+        assert_eq!(1, dll.num_elements());
+
+        dll.pop_back();
+        assert_eq!(0, dll.num_elements());
+        assert!(dll.is_empty());
+
+        dll.push_back(1);
+        assert_eq!(1, dll.num_elements());
+        dll.pop_back();
+        assert_eq!(0, dll.num_elements());
+        assert!(dll.is_empty());
     }
 }
