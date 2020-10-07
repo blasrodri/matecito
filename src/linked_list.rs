@@ -347,6 +347,7 @@ mod tests {
         assert_eq!(1, dll.num_elements());
         dll.pop_back();
         assert_eq!(0, dll.num_elements());
+        assert_eq!(None, dll.pop_back());
         assert!(dll.is_empty());
     }
 }
