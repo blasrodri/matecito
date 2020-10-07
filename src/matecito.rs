@@ -26,12 +26,10 @@ impl<'a, T: std::fmt::Debug> Matecito<T> {
     pub fn put(&mut self, key: u64, value: T) -> MatecitoResult<u64> {
         // TODO: handle the case where the dll is FULL!
         if self.max_size == self.dll.num_elements() {
-            // we might want to do something with it.
-            let _ = self.evict_node();
+            self.evict_node();
         }
 
         let node = self.dll.push_back(key);
-        dbg!(&self.dll);
 
         self.m.insert(key, (value, node));
         MatecitoResult::Ok(key)
@@ -42,8 +40,6 @@ impl<'a, T: std::fmt::Debug> Matecito<T> {
             return None;
         }
         // We've confirmed that there is such key... so we can unwrap.
-        dbg!(&self.dll);
-        dbg!(&self.m);
         let (value, node) = self.m.get(&key).unwrap();
 
         let result = self.dll.delete(*node);
@@ -83,7 +79,7 @@ mod tests {
         assert_eq!(None, matecito.get(456));
 
         assert_eq!(MatecitoResult::Ok(456), matecito.put(456, 456));
-        assert_eq!(None, matecito.get(456));
+        assert_eq!(Some(&456), matecito.get(456));
 
         // 123 is gone, since the cache is full
         assert_eq!(None, matecito.get(123));
