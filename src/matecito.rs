@@ -8,12 +8,12 @@ use twox_hash::RandomXxHashBuilder64;
 
 type NonNullNode<T> = NonNull<Node<T>>;
 pub struct Matecito<T> {
-    m: HashMap<u64, NonNullNode<(u64, T)>, RandomXxHashBuilder64>,
-    dll: DoublyLinkedList<(u64, T)>,
-    max_size: usize, // amount of bytes?
+    m: HashMap<u64, (T, NonNullNode<u64>), RandomXxHashBuilder64>,
+    dll: DoublyLinkedList<u64>,
+    max_size: usize, // threshold on the amount of elements we can store
 }
 
-impl<'a, T: std::fmt::Debug + Clone> Matecito<T> {
+impl<'a, T: std::fmt::Debug> Matecito<T> {
     pub fn new(max_size: usize) -> Self {
         let m: HashMap<_, _, RandomXxHashBuilder64> = Default::default();
         Self {
@@ -30,33 +30,33 @@ impl<'a, T: std::fmt::Debug + Clone> Matecito<T> {
             let _ = self.evict_node();
         }
 
-        let node = self.dll.push_back((key, value));
+        let node = self.dll.push_back(key);
         dbg!(&self.dll);
 
-        self.m.insert(key, node);
+        self.m.insert(key, (value, node));
         MatecitoResult::Ok(key)
     }
 
-    pub fn get(&mut self, key: u64) -> Option<T> {
+    pub fn get(&mut self, key: u64) -> Option<&T> {
         if self.m.get(&key).is_none() {
             return None;
         }
         // We've confirmed that there is such key... so we can unwrap.
         dbg!(&self.dll);
         dbg!(&self.m);
-        let node = self.m.get(&key).unwrap();
+        let (value, node) = self.m.get(&key).unwrap();
 
         let result = self.dll.delete(*node);
-        self.dll.push_back(result.clone().unwrap()); // TODO: get rid of this Clone!!
-        result.map(|(_, v)| v)
+        self.dll.push_back(result.clone().unwrap());
+        Some(value)
     }
 
     fn evict_node(&mut self) -> Option<T> {
         let opt_items = self.dll.pop_front();
         match opt_items {
             None => unreachable!("there were no items... strange"),
-            Some((key, item)) => {
-                self.m.remove(&key);
+            Some(key) => {
+                let (item, _) = self.m.remove(&key).unwrap();
                 Some(item)
             }
         }
@@ -72,13 +72,13 @@ mod tests {
         assert_eq!(MatecitoResult::Ok(123), matecito.put(123, 123));
         assert_eq!(MatecitoResult::Ok(456), matecito.put(456, 456));
 
-        assert_eq!(Some(456), matecito.get(456));
-        assert_eq!(Some(123), matecito.get(123));
+        assert_eq!(Some(&456), matecito.get(456));
+        assert_eq!(Some(&123), matecito.get(123));
 
         assert_eq!(None, matecito.get(01010));
 
         assert_eq!(MatecitoResult::Ok(789), matecito.put(789, 789_000));
-        assert_eq!(Some(789_000), matecito.get(789));
+        assert_eq!(Some(&789_000), matecito.get(789));
         // 456 is gone, since the cache is full
         assert_eq!(None, matecito.get(456));
 
