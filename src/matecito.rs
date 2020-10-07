@@ -24,7 +24,6 @@ impl<'a, T: std::fmt::Debug> Matecito<T> {
     }
 
     pub fn put(&mut self, key: u64, value: T) -> MatecitoResult<u64> {
-        // TODO: handle the case where the dll is FULL!
         if self.max_size == self.dll.num_elements() {
             self.evict_node();
         }
