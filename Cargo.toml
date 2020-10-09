@@ -4,8 +4,9 @@ edition = "2018"
 name = "matecito"
 version = "0.1.0"
 [dependencies]
-bincode = "*"
 twox-hash = "*"
+parking_lot = "0.11.0"
+matecito-dll = "0.1.0"
 
 [dependencies.serde]
 features = ["derive"]
