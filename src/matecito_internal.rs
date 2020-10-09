@@ -8,13 +8,13 @@ use twox_hash::RandomXxHashBuilder64;
 
 pub(crate) type NonNullNode<T> = NonNull<Node<T>>;
 
-pub(crate) struct Matecito<T> {
+pub(crate) struct MatecitoInternal<T> {
     m: HashMap<u64, (T, NonNullNode<u64>), RandomXxHashBuilder64>,
     dll: DoublyLinkedList<u64>,
     max_size: usize, // threshold on the amount of elements we can store
 }
 
-impl<'a, T: std::fmt::Debug> Matecito<T> {
+impl<'a, T: std::fmt::Debug> MatecitoInternal<T> {
     pub(crate) fn new(max_size: usize) -> Self {
         let m: HashMap<_, _, RandomXxHashBuilder64> = Default::default();
         Self {
@@ -64,7 +64,7 @@ mod tests {
     use super::*;
     #[test]
     fn insert_and_find_in_cache() {
-        let mut matecito = Matecito::<i32>::new(2);
+        let mut matecito = MatecitoInternal::<i32>::new(2);
         assert_eq!(MatecitoResult::Ok(123), matecito.put(123, 123));
         assert_eq!(MatecitoResult::Ok(456), matecito.put(456, 456));
 
