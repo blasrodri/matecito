@@ -15,7 +15,7 @@ use std::sync::Arc;
 /// use matecito::Matecito;
 ///
 /// // Initialize the cache with space for 1024 objects.
-/// let m = Matecito::<String>::new(2usize.pow(10));
+/// let m = Matecito::<u64, String>::new(2usize.pow(10));
 /// let m1 = m.clone();
 /// std::thread::spawn(move || {
 ///     m1.put(123, "asd".to_string());
@@ -27,24 +27,24 @@ use std::sync::Arc;
 ///
 /// ```
 
-pub struct Matecito<T>(Arc<cache::Cache<T>>);
+pub struct Matecito<K, T>(Arc<cache::Cache<K, T>>);
 
-impl<T: std::fmt::Debug + Clone> Matecito<T> {
+impl<K: Clone + Ord + std::hash::Hash, T: std::fmt::Debug + Clone> Matecito<K, T> {
     // num_elements should be a power of two
     pub fn new(num_elements: usize) -> Self {
         Self(Arc::new(cache::Cache::new(num_elements)))
     }
 
-    pub fn put(&self, key: u64, value: T) -> MatecitoResult<u64> {
+    pub fn put(&self, key: K, value: T) -> MatecitoResult<K> {
         self.0.put(key, value)
     }
 
-    pub fn get(&self, key: u64) -> Option<T> {
+    pub fn get(&self, key: K) -> Option<T> {
         self.0.get(key)
     }
 }
 
-impl<T> Clone for Matecito<T> {
+impl<K, T> Clone for Matecito<K, T> {
     fn clone(&self) -> Self {
         let cache = self.0.clone();
         Self(cache)
@@ -56,7 +56,7 @@ mod tests {
     use super::*;
     #[test]
     fn test_simple() {
-        let m = Matecito::<String>::new(2usize.pow(10));
+        let m = Matecito::<u64, String>::new(2usize.pow(10));
         let m1 = m.clone();
         std::thread::spawn(move || {
             m1.put(123, "asd".to_string());

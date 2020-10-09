@@ -1,51 +1,63 @@
 use crate::errors::MatecitoResult;
 use crate::matecito_internal::MatecitoInternal;
 use parking_lot::Mutex;
+use std::hash::{BuildHasher, Hasher};
 use std::sync::Arc;
 
 const NUM_SHARDS: usize = 256;
-pub(crate) struct Cache<T> {
-    sharded_matecitos: Arc<Vec<Arc<Mutex<MatecitoInternal<T>>>>>,
+pub(crate) struct Cache<K, T> {
+    hash_builder: twox_hash::RandomXxHashBuilder64,
+    sharded_matecitos: Arc<Vec<Arc<Mutex<MatecitoInternal<K, T>>>>>,
 }
 
-impl<T: std::fmt::Debug + Clone> Cache<T> {
+impl<K: Clone + std::hash::Hash + Ord, T: std::fmt::Debug + Clone> Cache<K, T> {
     pub fn new(max_size: usize) -> Self {
         let mut v = Vec::with_capacity(NUM_SHARDS);
+        let hash_builder = twox_hash::RandomXxHashBuilder64::default();
         for _ in 0..NUM_SHARDS {
-            v.push(Arc::new(Mutex::new(MatecitoInternal::<T>::new(
+            v.push(Arc::new(Mutex::new(MatecitoInternal::<K, T>::new(
                 max_size / NUM_SHARDS,
             ))))
         }
         let sharded_matecitos = Arc::new(v);
-        Self { sharded_matecitos }
+        Self {
+            hash_builder,
+            sharded_matecitos,
+        }
     }
 
-    pub(crate) fn put(&self, key: u64, value: T) -> MatecitoResult<u64> {
+    pub(crate) fn put(&self, key: K, value: T) -> MatecitoResult<K> {
         // TODO: Check whether it makes sense to put it or not... smart stats missing.
-        let slot = self.get_shard(key);
+        let slot = self.get_shard(key.clone());
         let mut matecito = (*self.sharded_matecitos)[slot].lock();
         matecito.put(key, value)
     }
 
-    pub(crate) fn get(&self, key: u64) -> Option<T> {
+    pub(crate) fn get(&self, key: K) -> Option<T> {
         // TODO: Bloom filter missing.
-        let slot = self.get_shard(key);
+        let slot = self.get_shard(key.clone());
         let mut matecito = (*self.sharded_matecitos)[slot].lock();
         matecito.get(key).cloned()
     }
 
     #[inline]
-    fn get_shard(&self, key: u64) -> usize {
-        key as usize % NUM_SHARDS
+    fn get_shard(&self, key: K) -> usize {
+        let mut state = self.hash_builder.build_hasher();
+        key.hash(&mut state);
+        state.finish() as usize % NUM_SHARDS
     }
 }
 
-impl<T> Clone for Cache<T> {
+impl<K, T> Clone for Cache<K, T> {
     fn clone(&self) -> Self {
         let sharded_matecitos = self.sharded_matecitos.clone();
-        Self { sharded_matecitos }
+        let hash_builder = self.hash_builder.clone();
+        Self {
+            sharded_matecitos,
+            hash_builder,
+        }
     }
 }
 
-unsafe impl<T> Send for Cache<T> {}
-unsafe impl<T> Sync for Cache<T> {}
+unsafe impl<K, T> Send for Cache<K, T> {}
+unsafe impl<K, T> Sync for Cache<K, T> {}

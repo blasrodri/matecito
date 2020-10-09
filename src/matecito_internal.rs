@@ -8,13 +8,13 @@ use twox_hash::RandomXxHashBuilder64;
 
 pub(crate) type NonNullNode<T> = NonNull<Node<T>>;
 
-pub(crate) struct MatecitoInternal<T> {
-    m: HashMap<u64, (T, NonNullNode<u64>), RandomXxHashBuilder64>,
-    dll: DoublyLinkedList<u64>,
+pub(crate) struct MatecitoInternal<K, T> {
+    m: HashMap<K, (T, NonNullNode<K>), RandomXxHashBuilder64>,
+    dll: DoublyLinkedList<K>,
     max_size: usize, // threshold on the amount of elements we can store
 }
 
-impl<'a, T: std::fmt::Debug> MatecitoInternal<T> {
+impl<'a, K: Ord + Clone + std::hash::Hash, T: std::fmt::Debug> MatecitoInternal<K, T> {
     pub(crate) fn new(max_size: usize) -> Self {
         let m: HashMap<_, _, RandomXxHashBuilder64> = Default::default();
         Self {
@@ -24,18 +24,18 @@ impl<'a, T: std::fmt::Debug> MatecitoInternal<T> {
         }
     }
 
-    pub(crate) fn put(&mut self, key: u64, value: T) -> MatecitoResult<u64> {
+    pub(crate) fn put(&mut self, key: K, value: T) -> MatecitoResult<K> {
         if self.max_size == self.dll.num_elements() {
             self.evict_node();
         }
 
-        let node = self.dll.push_back(key);
+        let node = self.dll.push_back(key.clone());
 
-        self.m.insert(key, (value, node));
+        self.m.insert(key.clone(), (value, node));
         MatecitoResult::Ok(key)
     }
 
-    pub(crate) fn get(&mut self, key: u64) -> Option<&T> {
+    pub(crate) fn get(&mut self, key: K) -> Option<&T> {
         if self.m.get(&key).is_none() {
             return None;
         }
@@ -64,7 +64,7 @@ mod tests {
     use super::*;
     #[test]
     fn insert_and_find_in_cache() {
-        let mut matecito = MatecitoInternal::<i32>::new(2);
+        let mut matecito = MatecitoInternal::<u64, i32>::new(2);
         assert_eq!(MatecitoResult::Ok(123), matecito.put(123, 123));
         assert_eq!(MatecitoResult::Ok(456), matecito.put(456, 456));
 

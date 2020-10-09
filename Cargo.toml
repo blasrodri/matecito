@@ -4,7 +4,7 @@ edition = "2018"
 name = "matecito"
 version = "0.1.0"
 [dependencies]
-twox-hash = "*"
+twox-hash = "1.5.0"
 parking_lot = "0.11.0"
 matecito-dll = "0.1.0"
 
