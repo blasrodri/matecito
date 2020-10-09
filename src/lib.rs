@@ -4,9 +4,33 @@ pub(crate) mod matecito_internal;
 
 use crate::errors::MatecitoResult;
 use std::sync::Arc;
+
+/// Matecito is an experimental concurrent cache. Its main purpose is to
+/// give a thread safe interface to use an in-memory storage for some
+/// expensive computations.
+///
+/// # Example
+///
+/// ```no_run
+/// use matecito::Matecito;
+///
+/// // Initialize the cache with space for 1024 objects.
+/// let m = Matecito::<String>::new(2usize.pow(10));
+/// let m1 = m.clone();
+/// std::thread::spawn(move || {
+///     m1.put(123, "asd".to_string());
+///     m1.put(01010101, "321".to_string());
+/// });
+/// // We need to give the cache a sec to populate the values.
+/// std::thread::sleep(std::time::Duration::from_millis(1));   
+/// assert_eq!(Some("asd".to_string()), m.get(123));
+///
+/// ```
+
 pub struct Matecito<T>(Arc<cache::Cache<T>>);
 
 impl<T: std::fmt::Debug + Clone> Matecito<T> {
+    // num_elements should be a power of two
     pub fn new(num_elements: usize) -> Self {
         Self(Arc::new(cache::Cache::new(num_elements)))
     }
