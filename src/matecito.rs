@@ -1,5 +1,5 @@
 use crate::errors::MatecitoResult;
-use crate::linked_list::{DoublyLinkedList, Node};
+use matecito_dll::{DoublyLinkedList, Node};
 
 use std::collections::HashMap;
 use std::ptr::NonNull;
