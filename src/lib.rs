@@ -1,3 +1,4 @@
+pub(crate) mod bloom_filter;
 pub(crate) mod cache;
 pub(crate) mod errors;
 pub(crate) mod matecito_internal;
