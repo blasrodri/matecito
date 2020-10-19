@@ -1,4 +1,4 @@
-use std::hash::Hasher;
+use std::hash::{Hash, Hasher};
 use twox_hash::XxHash64;
 
 pub(crate) struct BloomFilter {
@@ -10,9 +10,14 @@ pub(crate) struct BloomFilter {
 }
 
 impl BloomFilter {
-    pub fn new(array_size: u64) -> Self {
-        let hash_functions = Vec::new();
-        let counters = Vec::with_capacity(array_size as usize);
+    pub fn new(num_elements: u64, array_size: u64) -> Self {
+        let num_hash_functions =
+            BloomFilter::optimal_hash_functions(num_elements, array_size).round();
+        let mut hash_functions = Vec::new();
+        for i in 0..(num_hash_functions as usize) {
+            hash_functions.push(XxHash64::with_seed(i as u64))
+        }
+        let counters = vec![0; array_size as usize];
         // Generate independent
         Self {
             hash_functions,
@@ -22,18 +27,35 @@ impl BloomFilter {
         }
     }
 
+    #[inline]
+    fn optimal_hash_functions(n: u64, m: u64) -> f64 {
+        7f64 // TODO: find out what's the best way to define this for counteer bloom filters.
+    }
+
     fn get_indices<K: std::hash::Hash>(&self, key: &K) -> Vec<u64> {
         self.hash_functions
             .iter()
             .map(|h| {
                 let mut hh = h.clone();
                 key.hash(&mut hh);
-                h.finish() % self.array_size
+                hh.finish() % self.array_size
             })
             .collect()
     }
 
-    pub fn increment<K: std::hash::Hash>(&mut self, key: K) -> () {
+    pub fn count_present<K: Hash>(&self, key: K) -> u64 {
+        let indices = self.get_indices(&key);
+        indices
+            .iter()
+            .map(|idx| {
+                let idx = *idx as usize;
+                self.counters[idx]
+            })
+            .min()
+            .unwrap()
+    }
+
+    pub fn increment<K: Hash>(&mut self, key: K) -> () {
         let indices = self.get_indices(&key);
         indices.iter().for_each(|idx| {
             self.counters[*idx as usize] += 1;
@@ -43,7 +65,7 @@ impl BloomFilter {
         })
     }
 
-    pub fn decrement<K: std::hash::Hash>(&mut self, key: K) -> () {
+    pub fn decrement<K: Hash>(&mut self, key: K) -> () {
         let indices = self.get_indices(&key);
         indices
             .iter()
@@ -54,5 +76,24 @@ impl BloomFilter {
         for el in self.counters.iter_mut() {
             *el = *el / 2;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn init_bloom_filter() {
+        BloomFilter::new(10_000, 1000);
+    }
+
+    #[test]
+    fn init_bloom_filter_insert_and_check_presence() {
+        let mut bf = BloomFilter::new(10_000, 100);
+        let key = b"asd";
+        bf.increment(key);
+        assert_eq!(0, bf.count_present(&b"123"));
+        assert_eq!(1, bf.count_present(&b"asd"));
     }
 }
