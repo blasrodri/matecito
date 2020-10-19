@@ -109,4 +109,23 @@ mod tests {
         assert_eq!(0, bf.count_present(&b"asd"));
         assert_eq!(0, bf.count_present(&b"123"));
     }
+
+    #[test]
+    fn init_bloom_increment_ten_times_then_halve() {
+        let mut bf = BloomFilter::new(10_000, 100);
+        let key = b"asd";
+
+        for _ in 0..10 {
+            bf.increment(key);
+        }
+        bf.halve();
+        assert_eq!(5, bf.count_present(&b"asd"));
+        assert_eq!(0, bf.count_present(&b"123"));
+        bf.halve();
+        assert_eq!(2, bf.count_present(&b"asd"));
+        bf.halve();
+        assert_eq!(1, bf.count_present(&b"asd"));
+        bf.halve();
+        assert_eq!(0, bf.count_present(&b"asd"));
+    }
 }
