@@ -1,4 +1,3 @@
-use crate::errors::MatecitoResult;
 use matecito_dll::{DoublyLinkedList, Node};
 
 use std::collections::HashMap;
@@ -24,15 +23,16 @@ impl<'a, K: Ord + Clone + std::hash::Hash, T: std::fmt::Debug> MatecitoInternal<
         }
     }
 
-    pub(crate) fn put(&mut self, key: K, value: T) -> MatecitoResult<K> {
+    pub(crate) fn put(&mut self, key: &K, value: T) -> Option<K> {
+        let mut result = None;
         if self.max_size == self.dll.num_elements() {
-            self.evict_node();
+            result = self.evict_node();
         }
 
         let node = self.dll.push_back(key.clone());
 
         self.m.insert(key.clone(), (value, node));
-        MatecitoResult::Ok(key)
+        result
     }
 
     pub(crate) fn get(&mut self, key: K) -> Option<&T> {
@@ -47,13 +47,13 @@ impl<'a, K: Ord + Clone + std::hash::Hash, T: std::fmt::Debug> MatecitoInternal<
         Some(value)
     }
 
-    fn evict_node(&mut self) -> Option<T> {
+    fn evict_node(&mut self) -> Option<K> {
         let opt_items = self.dll.pop_front();
         match opt_items {
             None => unreachable!("there were no items... strange"),
             Some(key) => {
-                let (item, _) = self.m.remove(&key).unwrap();
-                Some(item)
+                let (_, _) = self.m.remove(&key).unwrap();
+                Some(key)
             }
         }
     }
@@ -65,20 +65,20 @@ mod tests {
     #[test]
     fn insert_and_find_in_cache() {
         let mut matecito = MatecitoInternal::<u64, i32>::new(2);
-        assert_eq!(MatecitoResult::Ok(123), matecito.put(123, 123));
-        assert_eq!(MatecitoResult::Ok(456), matecito.put(456, 456));
+        matecito.put(&123, 123);
+        matecito.put(&456, 456);
 
         assert_eq!(Some(&456), matecito.get(456));
         assert_eq!(Some(&123), matecito.get(123));
 
         assert_eq!(None, matecito.get(01010));
 
-        assert_eq!(MatecitoResult::Ok(789), matecito.put(789, 789_000));
+        matecito.put(&789, 789_000);
         assert_eq!(Some(&789_000), matecito.get(789));
         // 456 is gone, since the cache is full
         assert_eq!(None, matecito.get(456));
 
-        assert_eq!(MatecitoResult::Ok(456), matecito.put(456, 456));
+        matecito.put(&456, 456);
         assert_eq!(Some(&456), matecito.get(456));
 
         // 123 is gone, since the cache is full

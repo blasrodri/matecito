@@ -6,7 +6,7 @@ pub(crate) struct BloomFilter {
     counters: Vec<u64>,
     array_size: u64,
     // approximate value
-    max_count: u64,
+    pub max_count: u64,
 }
 
 impl BloomFilter {
@@ -28,7 +28,7 @@ impl BloomFilter {
     }
 
     #[inline]
-    fn optimal_hash_functions(n: u64, m: u64) -> f64 {
+    fn optimal_hash_functions(_n: u64, _m: u64) -> f64 {
         7f64 // TODO: find out what's the best way to define this for counteer bloom filters.
     }
 
@@ -43,8 +43,8 @@ impl BloomFilter {
             .collect()
     }
 
-    pub fn count_present<K: Hash>(&self, key: K) -> u64 {
-        let indices = self.get_indices(&key);
+    pub fn count_present<K: Hash>(&self, key: &K) -> u64 {
+        let indices = self.get_indices(key);
         indices
             .iter()
             .map(|idx| {
@@ -55,8 +55,8 @@ impl BloomFilter {
             .unwrap()
     }
 
-    pub fn increment<K: Hash>(&mut self, key: K) -> () {
-        let indices = self.get_indices(&key);
+    pub fn increment<K: Hash>(&mut self, key: &K) -> () {
+        let indices = self.get_indices(key);
         indices.iter().for_each(|idx| {
             self.counters[*idx as usize] += 1;
             if self.counters[*idx as usize] > self.max_count {
@@ -72,7 +72,7 @@ impl BloomFilter {
             .for_each(|idx| self.counters[*idx as usize] -= 1)
     }
 
-    fn halve(&mut self) {
+    pub fn halve(&mut self) {
         for el in self.counters.iter_mut() {
             *el = *el / 2;
         }
