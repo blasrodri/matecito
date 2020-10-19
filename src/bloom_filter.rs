@@ -96,4 +96,17 @@ mod tests {
         assert_eq!(0, bf.count_present(&b"123"));
         assert_eq!(1, bf.count_present(&b"asd"));
     }
+
+    #[test]
+    fn init_bloom_filter_insert_decrement_and_check_presence() {
+        let mut bf = BloomFilter::new(10_000, 100);
+        let key = b"asd";
+        bf.increment(key);
+        assert_eq!(0, bf.count_present(&b"123"));
+        assert_eq!(1, bf.count_present(&b"asd"));
+
+        bf.decrement(key);
+        assert_eq!(0, bf.count_present(&b"asd"));
+        assert_eq!(0, bf.count_present(&b"123"));
+    }
 }
