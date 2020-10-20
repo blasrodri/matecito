@@ -39,9 +39,12 @@ impl<K: Clone + std::hash::Hash + Ord, T: std::fmt::Debug + Clone> Cache<K, T> {
             bloom_filter.increment(&key);
             (bloom_filter.count_present(&key), bloom_filter.max_count)
         };
-        if count > self.put_threshold as u64 {
-            let slot = self.get_shard(key.clone());
-            let mut matecito = (*self.sharded_matecitos)[slot].lock();
+        let slot = self.get_shard(key.clone());
+        let mut matecito = (*self.sharded_matecitos)[slot].lock();
+        // It makes sense to add it either:
+        // - there is space in the cache
+        // - we've seen it a lot!
+        if !matecito.is_full() || count > self.put_threshold as u64 {
             if let Some(another_key) = matecito.put(&key, value) {
                 let mut bloom_filter = (*self.bloom_filter).lock();
                 bloom_filter.decrement(another_key);

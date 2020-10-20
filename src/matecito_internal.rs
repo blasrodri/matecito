@@ -57,6 +57,9 @@ impl<'a, K: Ord + Clone + std::hash::Hash, T: std::fmt::Debug> MatecitoInternal<
             }
         }
     }
+    pub(crate) fn is_full(&self) -> bool {
+        self.max_size == self.dll.num_elements()
+    }
 }
 
 #[cfg(test)]
