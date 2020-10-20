@@ -2,7 +2,7 @@
 authors = ["Blas Rodriguez Irizar <rodrigblas@gmail.com>"]
 edition = "2018"
 name = "matecito"
-version = "0.1.5"
+version = "0.1.6"
 license = "MIT"
 repository = "https://github.com/blasrodri/matecito"
 description = "Concurrent LRU Cache (experimental)"
