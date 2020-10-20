@@ -35,12 +35,6 @@ impl<K: Clone + Ord + std::hash::Hash, T: std::fmt::Debug + Clone> Matecito<K, T
         Self(Arc::new(cache::Cache::new(num_elements, put_threshold)))
     }
 
-    #[allow(dead_code)]
-    // testing purposes
-    fn with_put_threshold(num_elements: usize, put_threshold: usize) -> Self {
-        Self(Arc::new(cache::Cache::new(num_elements, put_threshold)))
-    }
-
     pub fn put(&self, key: K, value: T) {
         self.0.put(key, value)
     }
@@ -62,7 +56,7 @@ mod tests {
     use super::*;
     #[test]
     fn test_simple() {
-        let m = Matecito::<u64, String>::with_put_threshold(2usize.pow(10), 0);
+        let m = Matecito::<u64, String>::new(2usize.pow(10));
         let m1 = m.clone();
         std::thread::spawn(move || {
             m1.put(123, "asd".to_string());
